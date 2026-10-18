@@ -61,6 +61,10 @@ class ListTask:
     def get_task_by_id(self,id):
         return self.tasks[id]
     
+    #SETS
+    def set_name(self,name):
+        self.name = name
+        
     #OTHERS
     def add_tasks(self,task: Task):
         self.tasks.append(task)
