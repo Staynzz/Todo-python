@@ -5,43 +5,91 @@ TABLE_USER = "User"
 TABLE_LISTTASK = "ListTask"
 TABLE_TASK = "Task"
 
-db = connect("datatodo.db")
-db.cursor()
-def request(command, *args, connection=db, rawoutput=False):
-    cur = connection.cursor()
-    output = cur.execute(command,args)
-    connection.commit()
-    if rawoutput:
-        return output
-    else:
-        return tuple(output)
+class Database:
+    def __init__(self,path):
+        self.path = path
+        self.connection = connect(path)
+    
+    #PROPRIETY
+    def get_path(self):
+        return self.path
 
-def add_user(name, password):
-    req = f"INSERT INTO {TABLE_USER} ('Username', 'Password') VALUES (?,?)"
-    return request(req,name,password)
-
-def get_all_table(table):
-    req = f"SELECT * FROM {table}"
-    return request(req)
-
-def get_user_byID(id):
-    req = f"SELECT * FROM {TABLE_USER} WHERE ID = ? "
-    return request(req,id)
-
-def delete_user_byID(id):
-    req = f"DELETE FROM {TABLE_USER} WHERE ID = ?"
-    return request(req,id)
-
-def update_user_byID(id,column,new_value):
+    def set_path(self,new_path):
+        self.path = new_path
+        self.connection.close()
+        self.connection = connect(self.path)
+        return True
+    
+    def get_connection(self):
+        return self.connection
+    
+    def close_connection(self):
+        self.connection.close()
+        return True
+    
+    #REQUEST
+    def request(self,command, *args, rawoutput=False):
+        cur = self.connection.cursor()
+        output = cur.execute(command,args)
+        self.connection.commit()
+        if rawoutput:
+            return output
+        else:
+            return tuple(output)
+        
+class Table():
     """
-    Column Index:
-        0: ID
-        1: Username
-        2: Password
+    Argument column format:
+        [("Name",(is_obligatory, is_unique, is_primary_key))] with is_... = Bool
     """
     
-    column_index = {0:"ID",1:"Username",2:"Password"}
-    req = f"UPDATE {TABLE_USER} SET {column_index[column]} = ? WHERE ID = ?"
-    return request(req,new_value,id)
+    def __init__(self,database: Database, name,column:list):
+        self.database = database
+        self.name = name
+        self.column = column
+        self.layout = {}
+        for col in column:
+            self.layout[col[0]] = col[1]
+            if col[1][2] == True:
+                self.primarykey = col[0]
+            
+            
+    def get_all(self, raw=False):
+        req = f"SELECT * FROM {self.name}"
+        return self.database.request(req,rawoutput=raw)
+    
+    def get_element_byID(self,id):
+        req = f"SELECT * FROM {self.name} WHERE {self.primarykey} = ?"
+        return self.database.request(req,id)
+    
+    def add_element(self,prop:dict):
+        req = f"INSERT INTO {self.name} ({", ".join(f"'{e}'" for e in prop.keys())}) VALUES ({("?," * len(prop.keys()))[:-1]})"
+        print(req)
+        return self.database.request(req,*prop.values())
+    
+    def edit_element_byID(self,id,update:dict):
+        req = f"UPDATE {self.name} SET {", ".join(f"'{e}' = ?" for e in update.keys())} WHERE {self.primarykey} = ?"
+        return self.database.request(req,*update.values(),id)
+        
+    def delete_element_byID(self,id):
+        req = f"DELETE FROM {self.name} WHERE {self.primarykey} = ?"
+        return self.database.request(req,id)
 
-db.close()
+        
+
+db = Database("datatodo.db")
+
+userdb = Table(db,TABLE_USER,[("ID",(1,1,1)),
+                              ("Username", (1,1,0)),
+                              ("Password", (1,0,0))])
+
+listdb = Table(db,TABLE_LISTTASK,[["ID",(1,1,1)],
+                                  ["ID User",(1,0,0)],
+                                  ["Name",(1,0,0)]])
+
+taskdb = Table(db,TABLE_TASK,[["ID",(1,1,1)],
+                              ["ID ListTask",(1,0,0)],
+                              ["Name", (1,0,0)],
+                              ["State", (1,0,0)]])
+
+db.close_connection()
