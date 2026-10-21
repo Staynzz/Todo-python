@@ -1,2 +1,4 @@
 __pycache__/
+design/
+.DS_Store
 *.db
