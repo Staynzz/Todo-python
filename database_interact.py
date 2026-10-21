@@ -1,4 +1,3 @@
-from task_module import *
 from sqlite3 import *
 from pathlib import Path
 
@@ -10,7 +9,7 @@ def create_new_database(name:str,path_schema=Path("data/schema.txt")):
     if name[-3:] != ".db":
         name += ".db"   #Ajoute la bonne extension de fichier
     newdatabase = Path("data") / name
-    if name == "datatodo.db":
+    if name == "datatodo.db" and Path("data/datatodo.db").exists():
         return "ERROR can't reset the original database"
     
     if not newdatabase.exists():
@@ -28,9 +27,12 @@ def create_new_database(name:str,path_schema=Path("data/schema.txt")):
                 temp_db.close()
 
 class Database:
-    def __init__(self,path):
+    def __init__(self,path:Path):
         self.path = path
+        if not path.exists():
+            create_new_database(str(path).split("/")[-1])
         self.connection = connect(path)
+        
     
     #PROPRIETY
     def get_path(self):
@@ -99,7 +101,7 @@ class Table():
 
         
 
-db = Database("data/datatodo.db")
+db = Database(Path("data/datatodo.db"))
 
 userdb = Table(db,TABLE_USER,[("ID",(1,1,1)),
                               ("Username", (1,1,0)),
