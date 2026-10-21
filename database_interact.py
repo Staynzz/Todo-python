@@ -1,9 +1,31 @@
 from task_module import *
 from sqlite3 import *
+from pathlib import Path
 
 TABLE_USER = "User"
 TABLE_LISTTASK = "ListTask"
 TABLE_TASK = "Task"
+
+def create_new_database(name:str,path_schema=Path("data/schema.txt")):
+    if name[-3:] != ".db":
+        name += ".db"   #Ajoute la bonne extension de fichier
+    newdatabase = Path("data") / name
+    if name == "datatodo.db":
+        return "ERROR can't reset the original database"
+    
+    if not newdatabase.exists():
+        newdatabase.touch() #
+    else:
+        with open(newdatabase,"w") as f:
+            f.write()
+            
+    with open(path_schema,"r") as f:
+                temp_db = connect(newdatabase)
+                for line in f.readlines():
+                    cur = temp_db.cursor()
+                    cur.execute(line)
+                    temp_db.commit()
+                temp_db.close()
 
 class Database:
     def __init__(self,path):
@@ -77,7 +99,7 @@ class Table():
 
         
 
-db = Database("datatodo.db")
+db = Database("data/datatodo.db")
 
 userdb = Table(db,TABLE_USER,[("ID",(1,1,1)),
                               ("Username", (1,1,0)),
